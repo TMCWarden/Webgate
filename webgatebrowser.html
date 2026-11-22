@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Web Gate Browser</title>
+  <style>
+	:root {
+	  color-scheme: light dark;
+	  --bg: #f5f5f7;
+	  --bg-elevated: #ffffff;
+	  --fg: #111827;
+	  --fg-muted: #6b7280;
+	  --border: #e5e7eb;
+	  --border-strong: #d1d5db;
+	  --accent: #2563eb;
+	  --accent-soft: rgba(37, 99, 235, 0.12);
+	  --danger: #dc2626;
+	  --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+	  --radius-lg: 12px;
+	  --radius-md: 8px;
+	  --radius-sm: 6px;
+	}
+	body.dark {
+	  --bg: #020617;
+	  --bg-elevated: #020617;
+	  --fg: #e5e7eb;
+	  --fg-muted: #9ca3af;
+	  --border: #111827;
+	  --border-strong: #1f2937;
+	  --accent: #3b82f6;
+	  --accent-soft: rgba(59, 130, 246, 0.18);
+	  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.6);
+	}
+
+	* {
+	  box-sizing: border-box;
+	}
+
+	body {
+	  margin: 0;
+	  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+		"Segoe UI", sans-serif;
+	  background: radial-gradient(circle at top left, #1d4ed8 0, transparent 55%),
+				  radial-gradient(circle at bottom right, #0f766e 0, transparent 55%),
+				  var(--bg);
+	  color: var(--fg);
+	  display: flex;
+	  height: 100vh;
+	  padding: 16px;
+	}
+
+	#shell {
+	  display: flex;
+	  flex-direction: column;
+	  flex: 1;
+	  max-width: 1400px;
+	  margin: 0 auto;
+	  border-radius: 24px;
+	  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(248,250,252,0.9));
+	  border: 1px solid rgba(148,163,184,0.3);
+	  box-shadow: var(--shadow-soft);
+	  overflow: hidden;
+	  backdrop-filter: blur(18px);
+	}
+
+	body.dark #shell {
+	  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(15,23,42,0.98));
+	  border-color: rgba(15,23,42,0.9);
+	}
+
+	/* Top bar */
+	#topbar {
+	  display: flex;
+	  align-items: center;
+	  justify-content: space-between;
+	  padding: 10px 14px;
+	  border-bottom: 1px solid var(--border);
+	  background: linear-gradient(to right, rgba(15,23,42,0.02), rgba(15,23,42,0.06));
+	}
+
+	#brand {
+	  display: flex;
+	  align-items: center;
+	  gap: 8px;
+	  font-size: 13px;
+	  font-weight: 500;
+	  color: var(--fg-muted);
+	}
+
+	#brand-dot {
+	  width: 9px;
+	  height: 9px;
+	  border-radius: 999px;
+	  background: radial-gradient(circle at 30% 30%, #001557, #0030a0);
+	  box-shadow: 0 0 0 4px rgba(0, 49, 160, 0.328);
+	}
+
+	#tabs {
+	  display: flex;
+	  gap: 6px;
+	  overflow-x: auto;
+	  padding: 4px 8px;
+	  border-radius: 999px;
+	  background: rgba(148,163,184,0.12);
+	}
+
+	.tab {
+	  padding: 4px 10px;
+	  border-radius: 999px;
+	  border: 1px solid transparent;
+	  cursor: pointer;
+	  white-space: nowrap;
+	  font-size: 12px;
+	  color: var(--fg-muted);
+	  background: transparent;
+	  display: flex;
+	  align-items: center;
+	  gap: 6px;
+	}
+
+	.tab.active {
+	  border-color: var(--accent);
+	  background: var(--accent-soft);
+	  color: var(--fg);
+	}
+
+	.tab span.title {
+	  max-width: 120px;
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	  white-space: nowrap;
+	}
+
+	#add-tab {
+	  padding: 2px 8px;
+	  border-radius: 999px;
+	  border: 1px solid transparent;
+	  cursor: pointer;
+	  background: rgba(15,23,42,0.06);
+	  color: var(--fg-muted);
+	  font-size: 16px;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	}
+
+	#topbar-right {
+	  display: flex;
+	  align-items: center;
+	  gap: 8px;
+	}
+
+	#dark-toggle {
+	  padding: 4px 10px;
+	  border-radius: 999px;
+	  border: 1px solid var(--border-strong);
+	  cursor: pointer;
+	  background: rgba(15,23,42,0.04);
+	  color: var(--fg-muted);
+	  font-size: 11px;
+	  display: flex;
+	  align-items: center;
+	  gap: 6px;
+	}
+
+	#dark-toggle-dot {
+	  width: 10px;
+	  height: 10px;
+	  border-radius: 999px;
+	  background: radial-gradient(circle at 30% 30%, #001557, #0030a0);
+	}
+
+	/* Nav bar */
+	#nav {
+	  padding: 8px 14px 10px;
+	  display: flex;
+	  gap: 8px;
+	  border-bottom: 1px solid var(--border);
+	  background: linear-gradient(to bottom, rgba(15,23,42,0.02), transparent);
+	}
+
+	.nav-btn {
+	  width: 30px;
+	  height: 30px;
+	  border-radius: 999px;
+	  border: 1px solid var(--border-strong);
+	  background: rgba(15,23,42,0.02);
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  cursor: pointer;
+	  color: var(--fg-muted);
+	  font-size: 14px;
+	}
+
+	.nav-btn:disabled {
+	  opacity: 0.35;
+	  cursor: default;
+	}
+
+	#url {
+	  flex: 1;
+	  padding: 7px 12px;
+	  border-radius: 999px;
+	  border: 1px solid var(--border-strong);
+	  background: rgba(15,23,42,0.02);
+	  color: var(--fg);
+	  font-size: 13px;
+	  outline: none;
+	}
+
+	#url:focus {
+	  border-color: var(--accent);
+	  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.35);
+	  background: rgba(15,23,42,0.01);
+	}
+
+	#go {
+	  padding: 0 14px;
+	  border-radius: 999px;
+	  border: none;
+	  background: linear-gradient(135deg, #2563eb, #4f46e5);
+	  color: white;
+	  font-size: 13px;
+	  cursor: pointer;
+	  display: flex;
+	  align-items: center;
+	  gap: 6px;
+	  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+	}
+
+	#go span.icon {
+	  font-size: 14px;
+	}
+
+	/* Main layout */
+	#content {
+	  display: flex;
+	  flex: 1;
+	  min-height: 0;
+	}
+
+	#sidebar {
+	  width: 340px;
+	  border-left: 1px solid var(--border);
+	  background: radial-gradient(circle at top, rgba(15,23,42,0.06), transparent),
+				  var(--bg-elevated);
+	  padding: 10px 12px;
+	  overflow-y: auto;
+	}
+
+	#main {
+	  flex: 1;
+	  display: flex;
+	  flex-direction: column;
+	  min-width: 0;
+	}
+
+	#view {
+	  flex: 1;
+	  margin: 10px 12px 12px;
+	  border-radius: var(--radius-lg);
+	  overflow: hidden;
+	  border: 1px solid var(--border);
+	  background: #ffffff;
+	  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+	}
+
+	body.dark #view {
+	  background: #020617;
+	  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.8);
+	}
+
+	#view iframe {
+	  width: 100%;
+	  height: 100%;
+	  border: none;
+	  background: transparent;
+	}
+
+	h3 {
+	  margin: 10px 0 4px;
+	  font-size: 12px;
+	  text-transform: uppercase;
+	  letter-spacing: 0.08em;
+	  color: var(--fg-muted);
+	}
+
+	.panel {
+	  margin-bottom: 10px;
+	  padding: 8px 9px;
+	  border-radius: var(--radius-md);
+	  border: 1px solid var(--border);
+	  background: rgba(15,23,42,0.02);
+	}
+
+	.pill-row {
+	  display: flex;
+	  flex-wrap: wrap;
+	  gap: 6px;
+	}
+
+	.pill {
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 6px;
+	  padding: 3px 8px;
+	  border-radius: 999px;
+	  font-size: 11px;
+	  border: 1px solid var(--border-strong);
+	  background: rgba(15,23,42,0.02);
+	  color: var(--fg-muted);
+	}
+
+	.pill-label {
+	  font-size: 9px;
+	  text-transform: uppercase;
+	  letter-spacing: 0.12em;
+	  opacity: 0.7;
+	}
+
+	.pill-url {
+	  max-width: 180px;
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	  white-space: nowrap;
+	}
+
+	ul {
+	  margin: 4px 0 0;
+	  padding-left: 16px;
+	  font-size: 11px;
+	  color: var(--fg-muted);
+	}
+
+	pre {
+	  white-space: pre-wrap;
+	  word-wrap: break-word;
+	  font-size: 11px;
+	  background: rgba(15,23,42,0.03);
+	  padding: 6px;
+	  border-radius: var(--radius-sm);
+	  border: 1px solid var(--border);
+	  max-height: 220px;
+	  overflow: auto;
+	}
+
+	.meta-row {
+	  display: flex;
+	  justify-content: space-between;
+	  font-size: 11px;
+	  color: var(--fg-muted);
+	  margin-bottom: 4px;
+	}
+
+	.meta-key {
+	  text-transform: uppercase;
+	  letter-spacing: 0.12em;
+	  font-size: 10px;
+	  opacity: 0.7;
+	}
+
+	.meta-value {
+	  font-variant-numeric: tabular-nums;
+	}
+
+	.status-dot {
+	  width: 8px;
+	  height: 8px;
+	  border-radius: 999px;
+	  background: #22c55e;
+	  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+	  margin-right: 6px;
+	}
+
+	.status-row {
+	  display: flex;
+	  align-items: center;
+	  gap: 6px;
+	  font-size: 11px;
+	  color: var(--fg-muted);
+	}
+
+	.status-row span.url {
+	  max-width: 200px;
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	  white-space: nowrap;
+	}
+
+	.empty-state {
+	  font-size: 12px;
+	  color: var(--fg-muted);
+	  opacity: 0.8;
+	}
+  </style>
+</head>
+<body>
+
+<div id="shell">
+  <div id="topbar">
+	<div id="brand">
+	  <div id="brand-dot"></div>
+	  <span>Web Gate</span>
+	</div>
+	<div id="tabs"></div>
+	<div id="topbar-right">
+	  <button id="add-tab">+</button>
+	  <button id="dark-toggle">
+		<div id="dark-toggle-dot"></div>
+		<span>Theme</span>
+	  </button>
+	</div>
+  </div>
+
+  <div id="nav">
+	<button id="back" class="nav-btn" title="Back">←</button>
+	<button id="forward" class="nav-btn" title="Forward">→</button>
+	<input id="url" placeholder="Search or enter address" />
+	<button id="go">
+	  <span class="icon">↗</span>
+	  <span>Go</span>
+	</button>
+  </div>
+
+  <div id="content">
+	<div id="main">
+	  <div id="view">
+		<iframe id="view-frame"></iframe>
+	  </div>
+	</div>
+	
+  </div>
+</div>
+
+<script>
+const WORKER = "https://browser-proxy.bradburylw.workers.dev?url=";
+const SEARCH_ENGINE = "https://bing.com/search?q=";
+
+/* ---------------- Tab + history model ---------------- */
+
+let tabs = [];
+let activeTabId = null;
+
+function createTab(title = "New Tab") {
+  const id = Date.now() + Math.random().toString(16).slice(2);
+  const tab = {
+	id,
+	title,
+	url: "",
+	data: null,
+	history: [],
+	historyIndex: -1
+  };
+  tabs.push(tab);
+  activeTabId = id;
+  renderTabs();
+  renderState();
+}
+
+function getActiveTab() {
+  return tabs.find(t => t.id === activeTabId) || null;
+}
+
+function setActiveTab(id) {
+  activeTabId = id;
+  renderTabs();
+  renderState();
+}
+
+function pushHistory(tab, url) {
+  if (!tab) return;
+  if (tab.historyIndex < tab.history.length - 1) {
+	tab.history = tab.history.slice(0, tab.historyIndex + 1);
+  }
+  tab.history.push(url);
+  tab.historyIndex = tab.history.length - 1;
+}
+
+function canGoBack(tab) {
+  return tab && tab.historyIndex > 0;
+}
+
+function canGoForward(tab) {
+  return tab && tab.historyIndex < tab.history.length - 1;
+}
+
+function goBack() {
+  const tab = getActiveTab();
+  if (!canGoBack(tab)) return;
+  tab.historyIndex -= 1;
+  const url = tab.history[tab.historyIndex];
+  loadUrl(url, { push: false });
+}
+
+function goForward() {
+  const tab = getActiveTab();
+  if (!canGoForward(tab)) return;
+  tab.historyIndex += 1;
+  const url = tab.history[tab.historyIndex];
+  loadUrl(url, { push: false });
+}
+
+/* ---------------- Omnibox (URL or search) ---------------- */
+
+function isProbablyUrl(input) {
+  input = input.trim();
+  if (!input) return false;
+  if (/^https?:\/\//i.test(input)) return true;
+  if (!input.includes(" ") && input.includes(".")) return true;
+  return false;
+}
+
+function normalizeUrlOrSearch(input) {
+  input = input.trim();
+  if (!input) return null;
+  if (isProbablyUrl(input)) {
+	if (!/^https?:\/\//i.test(input)) {
+	  return "https://" + input;
+	}
+	return input;
+  }
+  return SEARCH_ENGINE + encodeURIComponent(input);
+}
+
+/* ---------------- UI rendering ---------------- */
+
+function renderTabs() {
+  const container = document.getElementById("tabs");
+  container.innerHTML = "";
+  tabs.forEach(tab => {
+	const btn = document.createElement("button");
+	btn.className = "tab" + (tab.id === activeTabId ? " active" : "");
+	const titleSpan = document.createElement("span");
+	titleSpan.className = "title";
+	titleSpan.textContent = tab.title || "Tab";
+	btn.appendChild(titleSpan);
+	btn.onclick = () => setActiveTab(tab.id);
+	container.appendChild(btn);
+  });
+  if (tabs.length === 0) {
+	createTab("Tab 1");
+  }
+}
+
+function renderState(durationMs) {
+  const tab = getActiveTab();
+  const iframe = document.getElementById("view-frame");
+  const urlInput = document.getElementById("url");
+  const backBtn = document.getElementById("back");
+  const fwdBtn = document.getElementById("forward");
+  const scriptsEl = document.getElementById("scripts");
+  const stylesEl = document.getElementById("styles");
+  const rawEl = document.getElementById("raw");
+  const netMain = document.getElementById("network-main");
+  const netPills = document.getElementById("network-pills");
+  const metaSource = document.getElementById("meta-source");
+  const metaTime = document.getElementById("meta-time");
+
+  backBtn.disabled = !canGoBack(tab);
+  fwdBtn.disabled = !canGoForward(tab);
+
+  if (!tab || !tab.data) {
+	urlInput.value = tab?.url || "";
+	iframe.srcdoc = `
+	  <!DOCTYPE html>
+	  <html>
+		<head>
+		  <meta charset="utf-8" />
+		  <title>GoldBrowser — New Tab</title>
+		  <style>
+			body {
+			  margin: 0;
+			  height: 100vh;
+			  display: flex;
+			  align-items: center;
+			  justify-content: center;
+			  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+			  background: radial-gradient(circle at top, #1d4ed8 0, transparent 55%),
+						  radial-gradient(circle at bottom, #0f766e 0, transparent 55%),
+						  #020617;
+			  color: #e5e7eb;
+			}
+			.card {
+			  background: rgba(15,23,42,0.96);
+			  border-radius: 18px;
+			  padding: 24px 26px;
+			  width: 420px;
+			  box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+			  border: 1px solid rgba(148,163,184,0.35);
+			}
+			.title {
+			  font-size: 14px;
+			  letter-spacing: 0.12em;
+			  text-transform: uppercase;
+			  color: #9ca3af;
+			  margin-bottom: 6px;
+			}
+			.headline {
+			  font-size: 20px;
+			  margin-bottom: 18px;
+			}
+			.hint {
+			  font-size: 12px;
+			  color: #9ca3af;
+			  margin-bottom: 14px;
+			}
+			.chips {
+			  display: flex;
+			  flex-wrap: wrap;
+			  gap: 8px;
+			}
+			.chip {
+			  padding: 4px 10px;
+			  border-radius: 999px;
+			  border: 1px solid rgba(148,163,184,0.5);
+			  font-size: 11px;
+			  color: #e5e7eb;
+			  cursor: pointer;
+			  background: rgba(15,23,42,0.7);
+			}
+		  </style>
+		</head>
+		<body>
+		  <div class="card">
+			<div class="title">GoldBrowser</div>
+			<div class="headline">Where to next?</div>
+			<div class="hint">Use the bar above to search or go to a URL. Or try one of these:</div>
+			<div class="chips">
+			  <div class="chip" data-url="https://example.com">example.com</div>
+			  <div class="chip" data-url="https://developer.mozilla.org">MDN Docs</div>
+			  <div class="chip" data-url="https://news.ycombinator.com">Hacker News</div>
+			  <div class="chip" data-url="https://github.com">GitHub</div>
+			</div>
+		  </div>
+		  <script>
+			document.addEventListener("click", function(e) {
+			  var chip = e.target.closest(".chip");
+			  if (!chip) return;
+			  var url = chip.getAttribute("data-url");
+			  parent.postMessage({ type: "proxy-nav", href: url }, "*");
+			});
+		  <\/script>
+		</body>
+	  </html>
+	`;
+	scriptsEl.innerHTML = "<li class='empty-state'>No scripts yet.</li>";
+	stylesEl.innerHTML = "<li class='empty-state'>No styles yet.</li>";
+	rawEl.textContent = "No data yet.";
+	netMain.className = "status-row empty-state";
+	netMain.innerHTML = "No requests yet. Load a page to see activity.";
+	netPills.innerHTML = "";
+	metaSource.textContent = "–";
+	metaTime.textContent = "–";
+	return;
+  }
+
+  const data = tab.data;
+  urlInput.value = tab.url;
+
+  const fullHtml = buildExecutableHtml(data);
+  iframe.srcdoc = fullHtml;
+
+  scriptsEl.innerHTML = "";
+  if (!data.scripts || data.scripts.length === 0) {
+	scriptsEl.innerHTML = "<li class='empty-state'>No external scripts.</li>";
+  } else {
+	data.scripts.forEach(src => {
+	  const li = document.createElement("li");
+	  li.textContent = src;
+	  scriptsEl.appendChild(li);
+	});
+  }
+
+  const cssLinks = extractCssLinks(data.html, data.url);
+  stylesEl.innerHTML = "";
+  if (cssLinks.length === 0) {
+	stylesEl.innerHTML = "<li class='empty-state'>No external stylesheets.</li>";
+  } else {
+	cssLinks.forEach(href => {
+	  const li = document.createElement("li");
+	  li.textContent = href;
+	  stylesEl.appendChild(li);
+	});
+  }
+
+  rawEl.textContent = JSON.stringify(data, null, 2);
+
+  netMain.className = "status-row";
+  netMain.innerHTML = "";
+  const dot = document.createElement("div");
+  dot.className = "status-dot";
+  const label = document.createElement("span");
+  label.textContent = "MAIN";
+  label.style.fontSize = "10px";
+  label.style.textTransform = "uppercase";
+  label.style.letterSpacing = "0.12em";
+  label.style.opacity = "0.7";
+  const urlSpan = document.createElement("span");
+  urlSpan.className = "url";
+  urlSpan.textContent = tab.url;
+  netMain.appendChild(dot);
+  netMain.appendChild(label);
+  netMain.appendChild(urlSpan);
+
+  netPills.innerHTML = "";
+  cssLinks.forEach(href => {
+	const pill = document.createElement("div");
+	pill.className = "pill";
+	pill.innerHTML = `<span class="pill-label">CSS</span><span class="pill-url">${href}</span>`;
+	netPills.appendChild(pill);
+  });
+  (data.scripts || []).forEach(src => {
+	const pill = document.createElement("div");
+	pill.className = "pill";
+	pill.innerHTML = `<span class="pill-label">JS</span><span class="pill-url">${src}</span>`;
+	netPills.appendChild(pill);
+  });
+
+  metaSource.textContent = "Cloudflare Worker";
+  metaTime.textContent = typeof durationMs === "number"
+	? `${durationMs.toFixed(1)} ms`
+	: "–";
+}
+
+/* ---------------- HTML building + link rewriting ---------------- */
+
+function extractCssLinks(html, baseUrl) {
+  const doc = document.implementation.createHTMLDocument("");
+  doc.documentElement.innerHTML = html;
+  return Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
+	.map(link => new URL(link.href, baseUrl).href);
+}
+
+function buildExecutableHtml(data) {
+  const baseUrl = data.url;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.html, "text/html");
+
+  if (!doc.querySelector("base")) {
+	const base = doc.createElement("base");
+	base.href = baseUrl;
+	doc.head.prepend(base);
+  }
+
+  const cssLinks = extractCssLinks(data.html, baseUrl);
+  cssLinks.forEach(href => {
+	const link = doc.createElement("link");
+	link.rel = "stylesheet";
+	link.href = WORKER + encodeURIComponent(href);
+	doc.head.appendChild(link);
+  });
+
+  (data.scripts || []).forEach(src => {
+	const s = doc.createElement("script");
+	s.src = WORKER + encodeURIComponent(src);
+	doc.body.appendChild(s);
+  });
+
+  (data.js || []).forEach(code => {
+	const s = doc.createElement("script");
+	s.textContent = code;
+	doc.body.appendChild(s);
+  });
+
+  const bridge = doc.createElement("script");
+  bridge.textContent = `
+	document.addEventListener("click", function(e) {
+	  const a = e.target.closest("a");
+	  if (!a || !a.href) return;
+	  if (a.target && a.target !== "_self") return;
+	  e.preventDefault();
+	  parent.postMessage({ type: "proxy-nav", href: a.href }, "*");
+	}, true);
+  `;
+  doc.body.appendChild(bridge);
+
+  return "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+}
+
+/* ---------------- Navigation + worker fetch ---------------- */
+
+async function loadUrl(url, { push = true } = {}) {
+  const tab = getActiveTab();
+  if (!tab) return;
+
+  tab.url = url;
+  document.getElementById("url").value = url;
+
+  if (push) {
+	pushHistory(tab, url);
+  }
+
+  const endpoint = WORKER + encodeURIComponent(url);
+  const start = performance.now();
+  const res = await fetch(endpoint);
+  const duration = performance.now() - start;
+  const data = await res.json();
+
+  tab.data = data;
+  try {
+	tab.title = new URL(url).hostname;
+  } catch {
+	tab.title = url;
+  }
+
+  renderTabs();
+  renderState(duration);
+}
+
+/* ---------------- Event wiring ---------------- */
+
+document.getElementById("go").onclick = () => {
+  const raw = document.getElementById("url").value;
+  const target = normalizeUrlOrSearch(raw);
+  if (!target) return;
+  loadUrl(target);
+};
+
+document.getElementById("url").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+	document.getElementById("go").click();
+  }
+});
+
+document.getElementById("back").onclick = goBack;
+document.getElementById("forward").onclick = goForward;
+
+document.getElementById("add-tab").onclick = () => {
+  createTab("New Tab");
+};
+
+document.getElementById("dark-toggle").onclick = () => {
+  document.body.classList.toggle("dark");
+};
+
+/* ---------------- Message bridge from iframe ---------------- */
+
+window.addEventListener("message", (event) => {
+  const msg = event.data;
+  if (!msg || msg.type !== "proxy-nav" || !msg.href) return;
+  loadUrl(msg.href);
+});
+
+/* ---------------- Init ---------------- */
+
+createTab("Tab 1");
+</script>
+
+</body>
+</html>
